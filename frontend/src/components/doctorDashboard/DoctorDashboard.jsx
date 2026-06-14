@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../../api/axiosInstance";
 
@@ -9,32 +9,27 @@ function DoctorDashboard() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
+  const fetchData = useCallback(async () => {
+    try {
+      const [docRes, patientRes] = await Promise.all([
+        API.get("/doctor/dashboard"),
+        API.get("/doctor/patients"),
+      ]);
+
+      setDoctor(docRes.data?.doctor || null);
+      setPatients(patientRes.data || []);
+    } catch (err) {
+      console.error("Dashboard error:", err);
+    }
+  }, []);
+
   useEffect(() => {
     if (!token) {
       navigate("/login");
       return;
     }
     fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [docRes, patientRes] = await Promise.all([
-        API.get("/doctor/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        API.get("/doctor/patients", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-
-      console.log("DOCTOR API RESPONSE:", docRes.data);
-      setDoctor(docRes.data?.doctor || null);
-      setPatients(patientRes.data);
-    } catch (err) {
-      console.log(err.message);
-    }
-  };
+  }, [fetchData, navigate, token]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -49,7 +44,6 @@ function DoctorDashboard() {
       >
         <div className="container">
           <span className="navbar-brand fw-bold">Patient-Tracker</span>
-
           <div className="d-flex gap-2">
             <Link to="/" className="btn btn-light btn-sm">
               Home
@@ -84,14 +78,9 @@ function DoctorDashboard() {
                   🧑‍🤝‍🧑 Patients
                 </h5>
 
-                <p className="text-muted">
-                  View all registered patients or add a new one.
-                </p>
-
                 <Link to="/doctor/patient/new" className="btn btn-success me-2">
                   + Add New Patient
                 </Link>
-
                 <Link to="/doctor/patients" className="btn btn-outline-success">
                   View All
                 </Link>
@@ -100,7 +89,7 @@ function DoctorDashboard() {
                   {patients.slice(0, 3).map((p) => (
                     <div
                       key={p._id}
-                      className="d-flex justify-content-between border-bottom py-2"
+                      className="d-flex justify-content-between py-2"
                     >
                       <small>{p.name}</small>
                       <Link

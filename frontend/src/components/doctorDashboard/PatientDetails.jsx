@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import API from "../../api/axiosInstance";
 
@@ -22,7 +22,16 @@ function PatientDetails() {
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentNotes, setAppointmentNotes] = useState("");
 
-  const fetchPatient = async () => {
+  const fetchMedicineList = useCallback(async () => {
+    try {
+      const res = await API.get("/doctor/medicines");
+      setMedicineList(res.data);
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+    }
+  }, []);
+
+  const fetchPatient = useCallback(async () => {
     try {
       const res = await API.get(`/doctor/patients/${id}`);
 
@@ -34,21 +43,12 @@ function PatientDetails() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchMedicineList = async () => {
-    try {
-      const res = await API.get("/doctor/medicines");
-      setMedicineList(res.data);
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-    }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchPatient();
     fetchMedicineList();
-  }, [id]);
+  }, [fetchPatient, fetchMedicineList]);
 
   const handleAddMedicine = async (e) => {
     e.preventDefault();
